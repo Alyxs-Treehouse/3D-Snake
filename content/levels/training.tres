@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SnakeLevel" load_steps=5 format=3]
+[ext_resource type="Script" path="res://src/content/level_definition.gd" id="1"]
+[ext_resource type="Script" path="res://src/core/food_goal_rule.gd" id="2"]
+[ext_resource type="Resource" path="res://content/tutorials/basic_controls.tres" id="3"]
+[sub_resource type="Resource" id="Goal"]
+script = ExtResource("2")
+target_food = 3
+[resource]
+script = ExtResource("1")
+id = "training"
+display_name = "Control Training"
+step_seconds = 1.0
+rules = Array[Resource]([SubResource("Goal")])
+tutorial = ExtResource("3")

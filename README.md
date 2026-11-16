@@ -1,123 +1,91 @@
-# Spatial Snake · PICO 4 开发工程
+# Spatial Snake
 
-Godot 4.4.1 + GDScript + OpenXR，目标为 PICO 4 一体机 APK。
+Godot **4.4.1 + GDScript + OpenXR**，面向 PICO 4 一体机的空间贪吃蛇。当前版本 **0.4.0**：玩家站在游戏房间内部；右杆按头部水平朝向控制，左杆控制上下，**保持方向才移动，释放立即停止**。
 
-目前为 0.3.3：玩家站在游戏空间内部的 3D 贪吃蛇。空间约 6.4 × 4 × 6.4 米，逻辑为 8 × 8 × 8 格；蛇在玩家四周与上方移动。已实现键盘/手柄六方向转向、食物、增长、计分、碰撞结束、暂停和重开。0.2.0 输入实验室作为独立场景保留。
+## 开始开发
 
-## 日常使用
-
-在本项目目录运行：
+需要 Godot 4.4.1、Python 3.11+。当前开发脚本支持 macOS / Linux；Android 构建另需对应 Godot 导出模板、JDK 17 和 Android SDK。
 
 ```bash
-./tools/dev.sh editor      # 打开 Godot 编辑器
-./tools/dev.sh preview     # Mac 桌面预览
-./tools/dev.sh lab         # 打开原输入实验室
-./tools/dev.sh check       # 导入、游戏/手部回归测试、无界面运行检查
-./tools/dev.sh build       # 导出 PICO 4 调试 APK
+python3 tools/bootstrap.py                 # 恢复锁定版本的 OpenXR Vendors，并验证 SHA-256
+python3 -m venv .cache/quality
+.cache/quality/bin/python -m pip install -r requirements-dev.txt
+./tools/dev.sh lint                       # 格式、静态规则、模块依赖边界
+./tools/dev.sh check                      # 单元、场景集成与启动检查
+./tools/dev.sh editor
+./tools/dev.sh preview
+./tools/dev.sh preview --level=training    # 示例关卡：教程 + 吃到三个食物通关
 ```
 
-APK 输出到 `builds/spatial-snake.apk`。也可以在 Godot 中导入 `project.godot`，用 F5 运行游戏，或在导出面板选择 `PICO 4`；打开 `scenes/input_lab.tscn` 后按 F6 可运行原实验室。
+`SNAKE_GODOT_BIN` 可指定引擎路径；否则寻找 PATH 中的 `godot` / `godot4`，再使用 macOS 的 `/Applications/Godot.app`。Linux CI 的官方引擎可用 `python3 tools/bootstrap.py --linux-engine` 恢复，路径见命令输出。引擎版本和第三方资源由 `.godot-version`、`dependencies.lock.json` 锁定。
 
-构建脚本随后检查 APK 签名、包名、SDK 版本、ARM64 库、PICO OpenXR loader、录音权限和手部追踪声明；结果保存为 `builds/apk-verification.json`。
+## 工程组织
 
-桌面游戏从空间内部的 1.65 米眼高观察，鼠标左键拖动转头。桌面不会模拟 XR 硬件。
+```text
+src/
+  core/           纯网格规则、碰撞、食物、机制扩展
+  gameplay/       会话状态、移动时钟、组合根与公共 API
+  input/          当前方向输入接口、键盘/手柄适配器、映射与捏合
+  platform/xr/    头显、手柄、追踪和焦点生命周期
+  presentation/   房间、蛇的批量渲染、HUD
+  content/        关卡、外观、内容目录的 Resource 类型与验证
+  tutorial/       教程定义、步骤和事件驱动执行器
+  services/       本地进度与设置存储
+  diagnostics/    独立输入实验室
+content/          可在 Godot Inspector 编辑的关卡、教程、外观 .tres
+scenes/           游戏、玩家 Rig、房间和诊断场景
+tests/           单元、场景集成和 CPU 压力测试
+tools/           依赖恢复、校验、Android 构建与部署
+```
 
-## 游戏操作与规则（0.3.3）
+主场景是 `scenes/game/game.tscn`。`SnakeGame` 负责装配，`GameSession` 负责游戏流程，`SnakeModel` 负责纯规则。硬件、教程和显示通过明确接口与会话信号连接；没有全局事件总线或服务定位器。
+
+详细约定与示例：
+
+- [架构和公共 API](docs/architecture.md)
+- [新增关卡、机制、输入、教程与外观](docs/extending.md)
+- [性能预算、测量方法与限制](docs/performance.md)
+- [开发与 Git 工作流](CONTRIBUTING.md)
+- [真机验证记录](docs/device-setup.md)
+
+## 操作
 
 | 动作 | 键盘 / 鼠标 | PICO 手柄 |
 | --- | --- | --- |
-| 开始、暂停、继续 | 空格或 P | 左手 X |
-| 重新开始 | R | 左手 Y |
-| 水平移动（按住） | WASD / 方向键 | 持续推住右摇杆，按当前头部朝向映射 |
-| 向上 / 向下（按住） | Q / E | 持续推住左摇杆向前 / 向后 |
-| 停止移动 | 松开方向键 | 所有方向输入回中 / 松开 |
-| 观察周围 | 鼠标左键拖动 | 自然转头 |
-| 重置空间朝向 | C（同时暂停） | 系统重置视角（同时暂停） |
+| 开始 / 暂停 / 继续 | 空格或 P | 左手 X |
+| 重开 | R | 左手 Y |
+| 水平移动，按住 | WASD / 方向键 | 右摇杆，按当前头部水平朝向映射 |
+| 上升 / 下降，按住 | Q / E | 左摇杆前推 / 后拉；两杆中立时也可按住右手 A / B |
+| 停止 | 释放方向键 | 所有方向输入回中 / 松开 |
+| 观察 | 鼠标左键拖动 | 自然转头 |
+| 重置房间朝向 | C（同时暂停） | 系统重置视角（同时暂停） |
 
-右摇杆按当前头部的水平朝向解释前后左右；推住摇杆转头时，目标方向也会实时更新，无需每次回中。模拟量先按视线旋转，再映射到最近的水平网格轴，斜向边界带少量迟滞以减少抖动。抬头、低头、歪头不改变水平控制；接近直视上下时保留最后有效朝向。没有方向输入时蛇静止，单纯转头不会启动移动。
+两杆同时输入时左杆上下优先。松开左杆后，只有右杆仍推住才继续水平移动。释放会冻结插值进度，再次输入从原位置继续；转弯在格点执行。禁止直接掉头，反向输入会停住。单纯转头不会启动移动。继续或重开后，摇杆和 A/B 需先回中 / 释放再激活。
 
-左摇杆向前控制上升，向后控制下降，左右分量不参与控制；两根摇杆同时推住时优先执行左杆上下指令，松开左杆后，只有右杆仍推住时才恢复水平移动。所有方向输入回中或松开，蛇和移动动画立即停在当前位置；重新输入后从停下的进度继续，转弯仍在格点发生。继续或重开后需要先回中一次。右手 A / B 保留为两杆回中时的上升 / 下降快捷键，也必须按住，松开即停；同时按 A/B 视为中立。键盘 WASD/方向键、Q/E 同样按住移动、松开停止。
+经典关卡为 8 × 8 × 8 格、6.4 × 4 × 6.4 米，保持输入时每 0.75 秒前进一格。吃食物增长并加分，撞墙或自身结束，填满空间获胜。沿墙平行移动允许，只有蛇头下一格越过某个墙面才算撞墙。训练关卡演示独立教程和食物目标机制。最高分、教程完成状态和外观选择保存在 `user://profile.json`，写入采用临时文件替换并保留备份。
 
-玩家视角不跟随蛇移动。第一次获得 XR 焦点时，场景以玩家当前水平位置和朝向布置，地面保持在追踪空间的地面高度。
+## Android 与 PICO 4
 
-贴墙、沿墙平行移动和沿墙角棱线移动都允许。只有蛇头下一格越过某个墙面才算撞墙；墙角处会检查每个相邻墙面，沿一面墙平行不代表不会正撞另一面墙。0.3.2 修复失败转向后蛇头仍朝旧方向的显示问题：撞墙时按实际方向显示短距离撞击，红色蛇头前端停在对应墙面。
+沿用已验证的 Godot 4.4.1 导出模板、OpenXR Vendors 4.3.1、JDK 17、Android API / Build Tools 34、ARM64 与 PICO loader。包名 `com.xuanyu.spatialsnake`。
 
-每局有 3 秒准备倒计时，结束后等待有效方向输入；持续保持输入时每 0.75 秒前进一格，蛇身在格子间连续插值移动。吃金色食物加 10 分、增长一节；撞墙或身体结束，禁止直接掉头，输入反向时停止移动，不继续沿旧方向跑。食物不会生成在蛇身上，填满空间获胜。`BEST` 是本次应用运行期间的最高分。金色竖线和食物方位提示用于定位高处或身后的食物。
+```bash
+./tools/dev.sh prepare       # 恢复 Android 模板并配置本机 Godot 的 JDK / SDK 路径
+./tools/dev.sh build         # 导出、检查签名/版本/架构/权限，成功后替换正式 APK
+./tools/dev.sh devices
+./tools/dev.sh deploy SERIAL # USB 已授权的真实 PICO 设备
+./tools/dev.sh lab           # 独立头显、IMU、声音、裸手诊断
+```
 
-应用失去焦点、头显会话停止或右手柄失去追踪时自动暂停，回来后需主动继续。手部骨架可在系统切换为裸手时显示，但本关仍由手柄控制；姿态、捏合和声音控制关卡将单独接入，也采用同一约定：持续输出有效方向时才动，回中、释放、静音或失去追踪时输出中立并停止。
+使用 `SNAKE_ANDROID_SDK`、`SNAKE_JAVA_HOME`、`SNAKE_GODOT_TEMPLATES` 覆盖本机路径。macOS 默认使用用户目录中的 Android SDK 与 Microsoft JDK 17，模板默认位于 Godot 导出模板目录。首次构建需要联网下载 Gradle / Maven 依赖。
 
-代码划分：`snake_simulation.gd` 负责纯规则，`snake_input_router.gd` 将键盘/手柄转为方向，`board_view.gd` 显示房间和蛇，`snake_game.gd` 连接时钟、XR 和一局游戏流程；所有移动适配器每帧向 `_apply_move_intent()` 提供当前方向或 `Vector3i.ZERO`，由同一处控制移动时钟和动画，避免不同输入模式重新引入自动行进。
+APK 输出为 `builds/spatial-snake.apk`。构建先写临时 APK，通过版本、签名、ARM64、OpenXR loader、录音/手部声明及开发脚本排除检查后才替换上一次有效产物。调试签名与生成文件不提交 Git。
 
-2026-11-15：39 项游戏检查、126 项转向检查、103 项墙面检查、31 项持续输入检查及手部回归通过。0.3.1 摇杆映射与 0.3.2 墙角显示已由用户真机确认；0.3.3 已安装到 PICO 4 并成功启动 OpenXR，用户已真机确认按住移动、松开立即停止，符合预期。持续性能尚未专项验收。部署证据见下方配置记录。
+## 验证范围
 
-## 已配置的开发方案
+0.3.1 的头部相对映射、0.3.2 的墙角显示、0.3.3 的保持输入 / 松手停止均已由用户在 PICO 4 确认。0.4.0 重构后的测试、桌面预览、APK 和真机验证分别记入 [设备记录](docs/device-setup.md)，不把历史验收自动沿用为新版验收。
 
-| 项目 | 版本 / 配置 |
-| --- | --- |
-| Godot | 4.4.1 stable，已安装配套导出模板 |
-| 渲染 | Compatibility / OpenGL，XR shaders 启用 |
-| OpenXR Vendors | 4.3.1-stable，面向 Godot 4.4 的 v4 系列 |
-| Java | Microsoft OpenJDK 17，用户目录安装 |
-| Android | API 34 / Build Tools 34.0.0 |
-| NDK / CMake | 23.2.8568313 / 3.10.2.4988404 |
-| 导出 | Gradle APK，ARM64，PICO OpenXR loader |
-| 应用包名 | `com.xuanyu.spatialsnake` |
-| 签名 | 本机开发用 debug keystore；不是商店发布签名 |
+```bash
+./tools/dev.sh benchmark     # 3 / 64 / 256 / 512 节蛇的 CPU 提交压力记录
+```
 
-JDK 默认位于 `~/Library/Java/JavaVirtualMachines/microsoft-17.jdk/Contents/Home`，Android SDK 位于 `~/Library/Android/sdk`。没有修改全局 shell 的 Java 版本。
-
-可通过 `SNAKE_GODOT_BIN`、`SNAKE_ANDROID_SDK`、`SNAKE_JAVA_HOME` 覆盖机器路径。更换路径后先关闭 Godot 编辑器，再运行 `./tools/dev.sh prepare` 同步编辑器设置。此命令仅在输入映射不存在时生成默认 action map。
-
-Android Gradle 模板及 Gradle 缓存不提交到 Git。干净检出后运行 `./tools/dev.sh prepare`，从已安装的 Godot 4.4.1 导出模板恢复。首次构建需要联网下载 Gradle 和 Maven 依赖。
-
-官方依赖来源：[Godot OpenXR Vendors 4.3.1](https://github.com/GodotVR/godot_openxr_vendors/releases/tag/4.3.1-stable)、[Microsoft OpenJDK](https://learn.microsoft.com/en-us/java/openjdk/download)、[Gradle 8.2](https://github.com/gradle/gradle-distributions/releases/tag/v8.2.0)。下载文件均核对官方 SHA-256，插件内各厂商许可证保留在 `addons/godotopenxrvendors/`。
-
-## 输入实验室
-
-以下操作属于独立的 `scenes/input_lab.tscn`，不是游戏场景的按键映射。实验室仍显示小型参考棋盘；正式游戏使用包围玩家的房间布局。
-
-- 世界固定的立体棋盘与参考蛇身。
-- 左右手柄追踪状态、右扳机、右摇杆和最近按键。
-- 头显相对校准姿态；右手柄转动驱动金色方块。
-- 左右手的 26 关节点与骨骼线：左手青色、右手蓝色；丢失追踪时隐藏。
-- 拇指与食指捏合检测：指尖变金色、独立计数，棋盘里的金色方块随捏合手变色。
-- 显示关节数、数据来源和指尖距离；明确的手柄推算数据不触发裸手捏合。
-- 麦克风开关与实时音量：按 M 或左手 X 开启；Android 会请求录音权限。
-- 麦克风数据仅用于本地电平显示，不保存或上传；音频总线衰减以避免扬声器回授。
-- 右手 A / 键盘 C 重新校准。
-
-### 裸手测试（0.2.0）
-
-1. 在 PICO 的 **设置 → 实验室 → 手势识别** 中开启手部追踪并完成系统引导（[官方说明](https://developer.picoxr.com/zh/document/unity/hand-tracking/)），先确认系统桌面能用裸手操作，再进入输入实验室、放下两个手柄。
-2. 将双手放到头显前方可见区域，先张开拇指和食指；应出现青色/蓝色骨架。
-3. 左面板分别显示 `L` / `R` 的追踪状态、有效关节数和捏合计数；`unknown` 只表示运行时未报告数据来源，不等于没有关节数据。
-4. 拇指与食指合拢并稍作停留：指尖变金色，显示 `PINCH`，`count` 增加一次；保持捏合不会重复增加。松开后可再次捏合。
-5. 将手移出视野：骨架应隐藏、捏合取消。重新伸手时先张开再捏合，避免恢复追踪时误触发。
-
-默认捏合阈值为 25 mm、松开阈值为 40 mm、稳定时间为 80 ms；集中在 `scripts/pinch_detector.gd`。这是输入实验室的起始参数，后续按真实使用体验调整。
-
-骨架直接使用 [Godot 4.4 XRHandTracker](https://docs.godotengine.org/en/4.4/classes/class_xrhandtracker.html) 的关节位置；根节点通过 `XRNode3D` 定位，骨骼转换为相对手掌坐标，以正确处理 XR 原点、重置视角和世界缩放。参见 [Godot 手部追踪说明](https://docs.godotengine.org/en/4.4/tutorials/xr/openxr_hand_tracking.html)。手势检测使用有效且正在追踪的两指位置；当前只实现捏合，不包含抓取物体、菜单射线或完整手势关卡。
-
-`./tools/dev.sh check` 使用合成数据检查捏合去抖、保持不重复、丢失追踪取消、重新张开后激活、手柄数据隔离及坐标转换。自动化测试不代表真机追踪已通过；真机结果单独记入下方配置记录。
-
-## 连接与部署 PICO 4
-
-1. 开启 PICO 4 开发者模式和 USB 调试，用数据线连接 Mac。
-2. 在头显中允许这台电脑的 USB 调试请求。
-3. 执行 `./tools/dev.sh devices`，确认设备状态为 `device`。
-4. 执行 `./tools/dev.sh deploy`，安装并启动已构建的 APK。
-5. 验证双眼显示、头部追踪、手柄、录音授权、音量变化；放下手柄后，再测试裸手追踪。
-
-有多台设备时用 `./tools/dev.sh deploy SERIAL` 明确选择。部署脚本不会卸载现有应用；如果签名冲突，应先确认设备上的已有数据再处理。
-
-2026-11-08 已在 PICO 4 真机（型号 A8110、PICO OS 5.13.7、Android 10）完成安装和启动：Godot 成功初始化 Pico OpenXR 3.0.1，绑定 PICO 4 手柄交互配置，并进入 `XR_SESSION_STATE_FOCUSED`。启动后的短时日志采样显示 72 FPS。
-
-用户已确认立体画面、头部追踪、手柄按键和麦克风电平正常；日志已记录右手 A 校准、左手 X 请求录音权限及非零音频帧。首次录音授权暴露的回调线程问题已修复，重新部署后通过首次授权复测。0.2.0 的裸手追踪与捏合已通过真机复测：用户开启系统手势识别后反馈正常，日志确认双手各 26 个关节，以及左右手捏合和松开事件。这是实验室的历史验证；当前游戏的验证范围见上方记录。PICO 4 的型号字段为 `A8110`，部署脚本现在按厂商字段 `Pico` 识别设备。
-
-该固件的 `screencap` 不接受 CLI 使用的 `--spatial` 参数，因此本次没有获得可用的空间截图。验证记录与日志位于 `builds/`，不会提交到 Git。
-
-详细环境检查与验证范围见 [真机配置记录](docs/device-setup.md)。
-
-## 下一步
-
-0.3.3 持续输入已通过用户真机复测。后续逐个接入姿态、捏合、声音关卡，并继续按实际手感与空间感调整。保留输入实验室用于硬件回归检查。
+GitHub Actions 在 push / PR 时运行固定版本的格式、边界、自动测试和 CPU 基准，保存日志与 JUnit 报告。头显 GPU、温度、长期帧率需要独立真机测量；姿态、裸手、声音的正式游戏关卡仍待开发，但输入扩展必须遵守“持续有效状态移动，中立停止”的统一接口。

@@ -1,6 +1,7 @@
 extends SceneTree
 ## Generate the initial action map with Godot --headless --xr-mode off --script.
 
+
 func _initialize() -> void:
 	call_deferred("_configure")
 

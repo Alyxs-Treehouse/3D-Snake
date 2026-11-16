@@ -6,9 +6,13 @@ import os
 import re
 import shutil
 import json
+import sys
 
 root = Path(__file__).resolve().parent.parent
-source = Path.home() / "Library/Application Support/Godot/export_templates/4.4.1.stable/android_source.zip"
+godot_data = Path.home() / "Library/Application Support/Godot" if sys.platform == "darwin" else Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "godot"
+version = (root / ".godot-version").read_text().strip()
+templates = Path(os.environ.get("SNAKE_GODOT_TEMPLATES", godot_data / "export_templates" / version))
+source = templates / "android_source.zip"
 build = root / "android/build"
 if not source.exists():
     raise SystemExit(f"Install Godot 4.4.1 export templates first: {source}")
@@ -26,7 +30,10 @@ if "distributionSha256Sum=" not in wrapper_text:
     wrapper.write_text(wrapper_text + "\ndistributionSha256Sum=38f66cd6eef217b4c35855bb11ea4e9fbc53594ccccb5fb82dfd317ef8c2c5a3\n")
 
 if "--configure-editor" in __import__("sys").argv:
-    settings = Path.home() / "Library/Application Support/Godot/editor_settings-4.4.tres"
+    settings = godot_data / "editor_settings-4.4.tres"
+    if not settings.exists():
+        settings.parent.mkdir(parents=True, exist_ok=True)
+        settings.write_text('[gd_resource type="EditorSettings" format=3]\n\n[resource]\n')
     backup = root / ".cache/editor_settings-4.4.before-xr.tres"
     backup.parent.mkdir(exist_ok=True)
     if not backup.exists():

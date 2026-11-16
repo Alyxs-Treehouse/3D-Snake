@@ -1,6 +1,22 @@
 # PICO 4 真机配置记录
 
-最近检查日期：2026-11-15（Asia/Shanghai）；早期环境与实验室记录保留在后文。
+最近检查日期：2026-11-16（Asia/Shanghai）；早期环境与实验室记录保留在后文。
+
+## 2026-11-16：0.4.0 工程化重构
+
+拆分纯规则、会话、输入适配、XR Rig、批量显示、关卡 / 外观资源、教程执行与本地存档。经典关卡保持已验收的内部视角和持续输入控制。训练关卡和 sunset 外观作为实际可加载的配置样例。源代码路径迁移到 `src/`、`content/` 与分层 `scenes/`；下方历史路径保留为当时记录。
+
+本地验证：固定版本 gdformat / gdlint 和模块依赖检查通过；规则、输入映射、会话、内容 / 存档、场景集成共 376 项检查及独立手部回归通过。场景测试覆盖松手冻结、恢复、失焦、换关卡、换皮、非立方网格、六面墙接触，以及 512 节蛇仍为四个渲染节点。桌面实际画面已检查，HUD 和内部视角正常。另将 Git 暂存树导出到空目录，只恢复锁定校验和的厂商插件，未复制 `.godot` 或本机资源缓存；全部导入、测试和启动检查再次通过。
+
+`./tools/dev.sh build` 通过，APK 为 `0.4.0 / versionCode 7`，SHA-256 `d634459e0c7fd503117d560b6bf29e19b55b322d88448512fbe666bedef33bec`；签名、版本、ARM64、PICO loader、权限、手部声明及测试 / 工具资源排除检查通过。导出先生成候选 APK，校验成功才替换正式产物。
+
+CPU 压力对比见 `docs/performance.md`。这是桌面 headless CPU 数据，未测设备 GPU、温度和长期帧率。
+
+用户连接 PICO 4 后，0.4.0 已覆盖安装并启动；应用查询确认 `versionName: 0.4.0`、`versionCode: 7`、`running: true`、PID `9098`。23:34:33 的日志确认 Godot 4.4.1、Pico OpenXR 3.0.1、Adreno 650 / OpenGL ES 3.2 初始化并进入房间场景；23:34:37 双手均为 `TRACKED`、`valid_joints=26`、`tips_tracked=true`，追踪来源保留运行时原值 `unknown`。23:34:43 应用失去焦点后双手进入 `PAUSED`。本次 Godot 采样未见脚本错误。
+
+用户明确选择“先不试玩，稍后再试”。因此本轮真机证据限于安装、启动和追踪日志；0.4.0 的立体画面、摇杆手感、暂停恢复和完整游戏流程尚待用户复测，不将此前 0.3.x 的确认当作新版验收，也不宣称完成持续性能测试。
+
+本轮沿用当前宿主会话的 CLI 环境验证，没有安装 / 更新 CLI、模拟器或 Kotlin SDK。OpenXR Vendors 从同一 4.3.1 官方包按锁文件 SHA 恢复，未升级版本。证据：`builds/check-engineering.log`、`builds/check-clean-checkout.log`、`builds/validation.log`、`builds/test-results.xml`、`builds/lint-final.log`、`builds/build-engineering.log`、`builds/apk-verification.json`、`builds/performance.json`、`builds/snake-game-preview.png`、`builds/pico-engineering-installed.json`、`builds/pico-engineering-runtime.log`。
 
 ## 2026-11-15：0.3.3 持续输入才移动
 

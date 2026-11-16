@@ -1,0 +1,38 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/platform/xr/player_rig.gd" id="1"]
+[sub_resource type="CapsuleMesh" id="ControllerMesh"]
+radius = 0.02
+height = 0.12
+[sub_resource type="StandardMaterial3D" id="LeftMaterial"]
+shading_mode = 0
+albedo_color = Color(0.39, 0.96, 0.8, 1)
+[sub_resource type="StandardMaterial3D" id="RightMaterial"]
+shading_mode = 0
+albedo_color = Color(0.42, 0.68, 1, 1)
+
+[node name="PlayerRig" type="Node3D"]
+script = ExtResource("1")
+[node name="Origin" type="XROrigin3D" parent="."]
+[node name="Head" type="XRCamera3D" parent="Origin"]
+near = 0.05
+[node name="Left" type="XRController3D" parent="Origin"]
+tracker = &"left_hand"
+pose = &"grip"
+show_when_tracked = true
+[node name="Marker" type="MeshInstance3D" parent="Origin/Left"]
+mesh = SubResource("ControllerMesh")
+material_override = SubResource("LeftMaterial")
+cast_shadow = 0
+[node name="Right" type="XRController3D" parent="Origin"]
+tracker = &"right_hand"
+pose = &"grip"
+show_when_tracked = true
+[node name="Marker" type="MeshInstance3D" parent="Origin/Right"]
+mesh = SubResource("ControllerMesh")
+material_override = SubResource("RightMaterial")
+cast_shadow = 0
+[node name="DesktopCamera" type="Camera3D" parent="."]
+position = Vector3(0, 1.65, 0)
+fov = 85.0
+near = 0.05

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="TutorialDefinition" load_steps=6 format=3]
+[ext_resource type="Script" path="res://src/tutorial/tutorial_definition.gd" id="1"]
+[ext_resource type="Script" path="res://src/tutorial/tutorial_step.gd" id="2"]
+[sub_resource type="Resource" id="Move"]
+script = ExtResource("2")
+id = "hold"
+instruction = "Hold a direction to move the snake."
+event = "move"
+[sub_resource type="Resource" id="Stop"]
+script = ExtResource("2")
+id = "release"
+instruction = "Release the direction to stop."
+event = "stop"
+[sub_resource type="Resource" id="Food"]
+script = ExtResource("2")
+id = "eat"
+instruction = "Reach the golden food."
+event = "food"
+[resource]
+script = ExtResource("1")
+id = "basic_controls"
+steps = Array[ExtResource("2")]([SubResource("Move"), SubResource("Stop"), SubResource("Food")])
