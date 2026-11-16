@@ -1,0 +1,19 @@
+<!-- pico-cli:plugin-context:pico-spatial-agentic-tools:start -->
+## Plugin Context
+
+Also read `./PICO-SPATIAL-AGENTIC-TOOLS.AGENTS.md` for PICO Spatial plugin guidance.
+<!-- pico-cli:plugin-context:pico-spatial-agentic-tools:end -->
+
+<!-- pico-cli:plugin-context:pico-general-agentic-tools:start -->
+## Plugin Context
+
+Also read `./PICO-GENERAL-AGENTIC-TOOLS.AGENTS.md` for PICO Spatial plugin guidance.
+<!-- pico-cli:plugin-context:pico-general-agentic-tools:end -->
+
+## Project scope
+
+- The user selected Godot 4.4.1 + GDScript + OpenXR for a PICO 4 standalone VR game.
+- PICO CLI is auxiliary device tooling. This project uses Godot scenes and Android export, not the Kotlin Spatial SDK/SpatialUI app generation workflow.
+- The desktop toolchain and PICO 4 deployment are configured. Input Lab 0.2.0 head tracking, tested controller buttons, microphone levels, hand joints and bilateral pinch were verified on 2026-11-08. Keep that lab as an independent diagnostic scene.
+- The user wants the player INSIDE the game space, watching the snake move around them. Game 0.3.3 uses a 6.4 x 4 x 6.4 metre room with a stationary tracked viewpoint, 8 x 8 x 8 simulation, keyboard/controller input, growth, food, collisions, pause and restart. It is the default scene. Right-stick held intent follows current horizontal head heading, with analog input rotated before grid quantization and diagonal hysteresis. Left-stick forward/back controls up/down; vertical input takes priority when both sticks are engaged. The user requires HOLD-TO-MOVE across all gameplay input modes: neutral/released input freezes both the simulation clock and interpolated snake position immediately. Right A/B and keyboard movement keys are held states too. Invalid reverse input stops instead of continuing the old course. Countdown completion alone never starts movement. Future IMU/gesture/sound adapters must emit current direction while active and ZERO while neutral/released/silent/untracked through the same movement gate; those modes are not implemented yet. Turns still occur at grid points; paused mid-cell motion resumes from frozen progress. Neutral sticks do not move on head movement; resume/restart requires neutral before re-engaging. Latest intent replaces pending turns; direct reversal remains blocked. 39 game checks, 126 steering checks, 103 wall checks, 31 hold-to-move checks and hand regressions pass. Version 0.3.3 / code 6 was built, installed and OpenXR startup verified on 2026-11-15; the user confirmed on 2026-11-15 that held joystick input moves the snake and release stops immediately, as expected. This held-state movement policy is accepted for subsequent gameplay modes. Walls kill only when the next head cell leaves the grid; tangential movement and bodies touching corners are allowed. Version 0.3.2 fixes stale rendered heading on failed turns and shows a brief red-nose impact ending at the actual wall plane. The user-reported parallel-wall death has not been reproduced as a rule error; 0.3.2 / code 5 is installed with OpenXR startup verified, and the user confirmed on 2026-11-15 that wall/corner movement is now normal and the impact direction is clear. Version 0.3.1 / code 4 was installed and OpenXR startup was verified on 2026-11-15. Real-device logs also show horizontal/vertical stick intent, food, wall collision and restart during play. The user confirmed on 2026-11-15 that both joystick mappings behave as expected. Keep this control scheme for subsequent levels. Sustained performance and longer-session spatial comfort remain unverified. See README.md and docs/device-setup.md. Speech recognition and gesture/IMU gameplay modes are not implemented yet.
+- Use `tools/dev.sh` for editor, preview, validation, and export. Keep generated builds, Gradle caches, and debug signing keys out of Git.

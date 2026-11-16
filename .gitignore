@@ -1,0 +1,19 @@
+.godot/
+.DS_Store
+.cache/
+builds/
+android/build/
+android/.build_version
+*.keystore
+*.log
+
+
+# Reproducible vendor install via tools/bootstrap.py
+addons/godotopenxrvendors/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.vscode/
+.idea/

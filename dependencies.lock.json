@@ -1,0 +1,8 @@
+{
+  "godot": "4.4.1.stable",
+  "openxr_vendors": {
+    "version": "4.3.1-stable",
+    "url": "https://github.com/GodotVR/godot_openxr_vendors/releases/download/4.3.1-stable/godotopenxrvendorsaddon.zip",
+    "sha256": "1620e9a589d205023e008ea27430843f5b8bb2690b62d08bd1fadc87c49b2e3e"
+  }
+}
